@@ -30,41 +30,25 @@ tidyverse_container = 'shub://TomHarrop/singularity-containers:r_3.5.0'
 
 rule target:
     input:
-        expand('output/samtools_depth/{sample}_{pcr}_mean_depth_table.csv', sample=['hyp'], pcr=['bro']),
+        expand('output/samtools_coverage/{sample}_{pcr}_depth.out', sample=['hyp'], pcr=['bro']),
         expand('output/samtools/{sample}_{pcr}_sorted.bam.bai', sample=['hyp'], pcr=['bro'])
 
-##calc read depth across scaffolds - can use to see at quick glance what scaffolds to look at in IGV
-rule calc_mean_depth:
-     input:  
-         depth = 'output/samtools_depth/{sample}_{pcr}_depth.out'
-     output:
-         mean_depth_table = 'output/samtools_depth/{sample}_{pcr}_mean_depth_table.csv'
-     singularity:
-         tidyverse_container
-     threads:
-         20
-     log:
-         'output/logs/calc_mean_depth/{sample}_{pcr}.log'
-     script:
-         'src/calc_mean_depth.R'
-
 ##include -a option - to print all positions even if depth = 0
-rule samtools_depth:
+rule samtools_coverage:
     input:
         sorted_bam = 'output/samtools/{sample}_{pcr}_sorted.bam'
     output:
-        depth_out = 'output/samtools_depth/{sample}_{pcr}_depth.out'
+        depth_out = 'output/samtools_coverage/{sample}_{pcr}_depth.out'
     log:
-        'output/logs/samtools_depth/{sample}_{pcr}.log'
+        'output/logs/samtools_coverage/{sample}_{pcr}.log'
     threads:
         20
     singularity:
         samtools_container
     shell:
-        'samtools depth '
+        'samtools coverage '
         '{input.sorted_bam} '
-        '> {output.depth_out} '
-        '-a '
+        '-o {output.depth_out} '
         '2> {log}'
 
 rule samtools_index:
@@ -146,7 +130,7 @@ checkpoint guppy_basecalling:
         guppy_container
     shell:
         'guppy_basecaller_supervisor '
-        '--port tom-1.staff.uod.otago.ac.nz:5555 '
+        '--port tom.staff.uod.otago.ac.nz:5555 '
         '--num_clients 5 '
         '--input_path {input.nanopore_raw_seq} '
         '--save_path {output} '
